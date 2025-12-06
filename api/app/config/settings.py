@@ -17,8 +17,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Analytics Gateway"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
-    BASE_URL: str
+    BASE_URL: str = "http://localhost:8000"
     ENVIRONMENT: str = "dev"
+    
+    MAILCHIMP_API_KEY: str | None = None
     
     # ========================================
     # CORS

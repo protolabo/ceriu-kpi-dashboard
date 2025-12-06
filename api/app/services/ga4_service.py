@@ -45,9 +45,51 @@ class GA4Service:
             return self._parse_response(response.json())
         except requests.RequestException as e:
             raise ValueError(f"GA4 API request failed: {str(e)}")
-
+        
     def _parse_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse GA4 response into a cleaner format"""
+    
+        # Noms des dimensions et métriques renvoyés par l'API GA4
+        dimension_headers = [d["name"] for d in data.get("dimensionHeaders", [])]
+        metric_headers = [m["name"] for m in data.get("metricHeaders", [])]
+
+        parsed_rows: list[dict[str, Any]] = []
+
+        for row in data.get("rows", []):
+            row_dict: Dict[str, Any] = {}
+
+            #Dimensions nommées
+            dim_values = [dv.get("value") for dv in row.get("dimensionValues", [])]
+            for name, value in zip(dimension_headers, dim_values):
+                row_dict[name] = value
+
+            #Metrics nommées
+            met_values = [mv.get("value") for mv in row.get("metricValues", [])]
+            for name, value in zip(metric_headers, met_values):
+                row_dict[name] = self._convert_value(value)
+
+            parsed_rows.append(row_dict)
+
+        return {
+            "rows": parsed_rows,
+            "row_count": len(parsed_rows),
+            "dimension_headers": dimension_headers,
+            "metric_headers": metric_headers,
+        }
+
+    @staticmethod
+    def _convert_value(value: Any) -> Any:
+        """Convertit les valeurs de chaîne en int ou float si possible"""
+        if not isinstance(value, str):
+            return value
+
+        try:
+            if "." in value:
+                return float(value)
+            return int(value)
+        except ValueError:
+            return value
+    """ def _parse_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        Parse GA4 response into a cleaner format
         rows = data.get("rows", [])
         parsed_data = []
 
@@ -72,4 +114,4 @@ class GA4Service:
             "rows": parsed_data,
             "row_count": len(parsed_data),
             "metadata": data.get("metadata", {})
-        }
+        } """
