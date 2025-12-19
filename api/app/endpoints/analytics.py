@@ -35,6 +35,7 @@ def get_ga4_report(
     metrics: List[str] = Query(["activeUsers"], description="List of metrics"),
     dimensions: Optional[List[str]] = Query(None, description="List of dimensions"),
     limit: int = Query(1000, ge=1, le=10000, description="Result limit"),
+    event_name: Optional[str] = Query(None, description="Filter exact eventName"),
     credentials: OAuthCredentials = Depends(parse_oauth_credentials)
 ):
     """
@@ -56,7 +57,8 @@ def get_ga4_report(
             end_date=end_date,
             metrics=metrics,
             dimensions=dimensions,
-            limit=limit
+            limit=limit,
+            event_name=event_name
         )
         
         # Execute query

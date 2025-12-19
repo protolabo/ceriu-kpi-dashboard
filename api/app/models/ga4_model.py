@@ -9,3 +9,4 @@ class GA4QueryParams(BaseModel):
     metrics: List[str] = Field(default_factory=lambda: ["activeUsers"])
     dimensions: Optional[List[str]] = None
     limit: int = 1000
+    event_name: Optional[str] = None
