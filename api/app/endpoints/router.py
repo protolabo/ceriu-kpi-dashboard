@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.endpoints import analytics, mailchimp
+from app.endpoints import analytics, mailchimp, vimeo
 
 """
 This module centralizes and aggregates the API routes into a single unified router.
@@ -8,3 +8,4 @@ This module centralizes and aggregates the API routes into a single unified rout
 router = APIRouter()
 router.include_router(analytics.router, tags=["analytics"])
 router.include_router(mailchimp.router)
+router.include_router(vimeo.router)

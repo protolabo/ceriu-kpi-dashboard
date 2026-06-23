@@ -1,8 +1,7 @@
-# app/endpoints/mailchimp.py
 from fastapi import APIRouter
 
 from app.models.mailchimp_model import MailchimpAudienceResponse, MailchimpCampaignSummaryResponse
-from app.services.mailchimp_services import get_mailchimp_audiences, get_mailchimp_campaign_summaries
+from app.services.mailchimp_service import get_mailchimp_audiences, get_mailchimp_campaign_summaries
 
 router = APIRouter(
     prefix="/mailchimp",

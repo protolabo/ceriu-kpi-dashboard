@@ -1,4 +1,3 @@
-# app/services/mailchimp_service.py
 from fastapi import HTTPException
 
 from app.config.settings import settings

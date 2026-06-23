@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "dev"
     
     MAILCHIMP_API_KEY: str | None = None
+    VIMEO_ACCESS_TOKEN: str | None = None
     
     # ========================================
     # CORS
