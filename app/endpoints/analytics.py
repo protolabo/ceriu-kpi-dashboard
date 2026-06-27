@@ -5,11 +5,9 @@ import json
 import base64
 
 from app.models.api_model import APIResponse
-from app.models.oauth_model import OAuthCredentials
-from app.models.ga4_model import GA4QueryParams
-from app.services.oauth_service import OAuthService
-from app.services.ga4_service import GA4Service
-
+from kpi_connectors.auth.oauth import OAuthCredentials, OAuthService
+from kpi_connectors.models.ga4 import GA4QueryParams
+from kpi_connectors.connectors.ga4 import GA4Service
 
 router = APIRouter()
 

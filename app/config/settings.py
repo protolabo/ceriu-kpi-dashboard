@@ -2,11 +2,12 @@ from typing import List, Union
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from pathlib import Path
 
 """
 This module defines the application's configuration settings using environment variables and default values.
 """
-
+ENV_PATH = Path(__file__).resolve().parents[3] / "app" / ".env"
 
 class Settings(BaseSettings):
     """Configuration de l'application"""
@@ -74,7 +75,7 @@ class Settings(BaseSettings):
     # Pydantic Config
     # ========================================
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_PATH),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",  # Ignore extra fields in .env

@@ -1,5 +1,6 @@
-mkdocs
-mkdocs-material
-mkdocs-material-extensions
-mkdocs-mermaid2-plugin
-pymdown-extensions
+fastapi
+uvicorn
+pydantic
+pydantic_settings
+python-dotenv
+requests

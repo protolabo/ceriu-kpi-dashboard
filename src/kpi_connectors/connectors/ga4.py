@@ -2,8 +2,8 @@ import requests
 from datetime import date, timedelta
 from typing import Dict, Any, List
 
-from app.models.ga4_model import GA4QueryParams
-from app.services.oauth_service import OAuthService
+from kpi_connectors.models.ga4 import GA4QueryParams
+from kpi_connectors.auth.oauth import OAuthService
 
 
 class GA4Service:
