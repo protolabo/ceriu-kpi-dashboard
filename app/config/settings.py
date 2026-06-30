@@ -7,7 +7,7 @@ from pathlib import Path
 """
 This module defines the application's configuration settings using environment variables and default values.
 """
-ENV_PATH = Path(__file__).resolve().parents[3] / "app" / ".env"
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 class Settings(BaseSettings):
     """Configuration de l'application"""
