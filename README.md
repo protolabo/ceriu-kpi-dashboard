@@ -1,75 +1,151 @@
-# Template de site web pour IFT3150
+# KPI Connectors
 
-Ce projet est un template de site web pour le cours IFT3150, construit avec [MkDocs](https://www.mkdocs.org/) et le thème [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/).
+Librairie Python cherchant à permettre l'agrégation de multi-sources (GA4, Mailchimp, Vimeo), accompagnée d'une API REST prête à l'emploi pour brancher Power BI sur ces sources afin de faire un tableau de bord KPI.
 
-## Prérequis
+Le projet se compose de deux parties :
 
-Assurez-vous d’avoir les outils suivants installés :
+- **`kpi_connectors`** la librairie : des connecteurs réutilisables pour récupérer des données de chaque source, utilisables dans n'importe quel script Python.
+- **`app`** une application FastAPI minimale qui expose ces connecteurs via une API REST, consommée par Power BI.
 
-- Python **3.8** ou plus récent
-- `pip` (gestionnaire de paquets Python)
+## Services supportés
+
+- Google Analytics 4 (GA4)
+- Mailchimp
+- Vimeo
+- LinkedIn *(à venir)*
+- Facebook *(à venir*)
+
+## Structure du projet
+```
+├── src/kpi_connectors/      # la librairie 
+│   ├── auth/                # authentification (OAuth)
+│   ├── connectors/          # clients vers les sources (ga4, mailchimp, vimeo)
+│   └── models/              # schémas de données
+│
+└── app/                     # application qui consomme la librairie (serveur web avec FAST API)
+    ├── main.py
+    ├── config/              # settings
+    ├── models/              # APIResponse
+    └── endpoints/           # routes GA4, Mailchimp, Vimeo             
+```
 
 ## Installation
 
-1. Clonez ce dépôt (optionnel) :
-```bash
-git clone git@github.com:udem-diro/template-projet.git
+### Prérequis
+
+- Python 3.11+
+- `pip`
+- `pipenv`. Si vous n'avez pas `pipenv`, installez-le avec `pip install pipenv`.
+
+### 1. Activer l'environnement virtuel
+
+```sh
+pipenv shell
 ```
 
-2. Installez les dépendances (dans votre répertoire) :
-```bash
-pip install -r requirements.txt
+> Pour quitter l'environnement virtuel, utilisez la commande `exit`.
+
+### 2. Installer le projet
+
+Installez la librairie en mode éditable. Les dépendances sont déclarées dans `pyproject.toml` et seront installées automatiquement.
+
+```sh
+pip install -e .
 ```
+
+> Le mode éditable (`-e`) lie l'installation à vos fichiers source : toute modification du code est prise en compte sans réinstaller. Cette étape n'est nécessaire qu'à la première installation ou lorsque de nouvelles dépendances sont ajoutées.
+
+## Configuration
+
+### Option 1: Variables d'environnement (pour un compte)
+
+Ajoutez les clés suivantes au fichier `.env` à la racine du projet:
+
+```sh
+# OAuth Google (GA4)
+OAUTH_CLIENT_ID=votre_client_id
+OAUTH_CLIENT_SECRET=votre_client_secret
+OAUTH_REFRESH_TOKEN=votre_refresh_token
+OAUTH_TOKEN_URI=https://oauth2.googleapis.com/token
+
+# Mailchimp
+MAILCHIMP_API_KEY=votre_cle_api
+
+# Vimeo
+VIMEO_ACCESS_TOKEN=votre_token
+```
+
+### Option 2: Header HTTP (pour plusieurs comptes)
+
+Les credentials *OAuth* peuvent être passés dans le header `X-OAuth-Credentials` (encodé en base64).
+
+**Obtenir les credentials OAuth pour GA4**
+
+1. Aller sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Créer un projet
+3. Activer l'API "*Google Analytics Data API*"
+4. Créer des credentials OAuth 2.0
+5. Obtenir le `refresh_token` via *OAuth Playground*
 
 ## Utilisation
 
-### Développement local
+### En tant que librairie
 
-Pour lancer un serveur de développement local :
+Les connecteurs sont importables directement, sans lancer de serveur :
 
-```bash
-mkdocs serve
+```python
+from kpi_connectors.connectors.mailchimp import fetch_mailchimp_audiences
+
+result = fetch_mailchimp_audiences(api_key="votre_cle-us21")
+print(result["total_subscribers"])
+for audience in result["audiences"]:
+    print(audience["name"], audience["member_count"])
 ```
 
-Le site sera accessible à l'adresse [http://127.0.0.1:8000](http://127.0.0.1:8000)
+### En tant qu'API web
 
-### Construction du site
+#### Démarrer le serveur
 
-Pour construire le site :
+> Assurez-vous que l'environnement virtuel est activé.
 
-```bash
-mkdocs build
+```sh
+uvicorn app.main:app --reload
 ```
 
-Les fichiers générés seront dans le dossier `site/`.
+L'API sera disponible à `http://localhost:8000`
 
-### Déploiement
+#### Documentation interactive
 
-Pour déployer sur GitHub Pages :
+- Swagger UI: http://localhost:8000/api/v1/docs
+- ReDoc: http://localhost:8000/api/v1/redoc
 
-```bash
-mkdocs gh-deploy
-```
+## Endpoints disponibles
 
-> Cette commande pousse automatiquement le contenu du site sur la branche gh-pages.
+### GET `/api/v1/ga4`
 
-## Structure du projet
+Récupère des données de Google Analytics 4.
 
-- `docs/` : Contient tous les fichiers Markdown du site
-- `mkdocs.yml` : Configuration de MkDocs
-- `requirements.txt` : Dépendances Python
-- `site/` : Site généré (créé lors de la construction)
+#### Paramètres de requête
 
-## Personnalisation
+- `property_id` (**obligatoire**): ID de la propriété GA4
+- `start_date` : Date de début (YYYY-MM-DD)
+- `end_date`: Date de fin (YYYY-MM-DD)
+- `metrics` : Liste de métriques
+- `dimensions` : Liste de dimensions
+- `limit` : Nombre max de résultats
 
-1. Modifiez `mkdocs.yml` pour changer la configuration du site
-2. Ajoutez/modifiez les fichiers Markdown (`.md`) dans `docs/`
-3. Personnalisez le thème en modifiant les paramètres dans `mkdocs.yml`
+#### Headers
 
-## Licence
+- `X-OAuth-Credentials` : Credentials OAuth encodés en base64
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+### GET `/api/v1/mailchimp/audiences`
 
-🙋‍♀️ Questions ou problèmes ?
+Récupère les audiences Mailchimp et le nombre total d'abonnés.
 
-En cas de problème, n'hésitez pas à ouvrir une issue sur GitHub ou à poser des questions au responsable du cours.
+### GET `/api/v1/mailchimp/campaigns/summary`
+
+Récupère le résumé des campagnes Mailchimp.
+
+### GET `/api/v1/vimeo/...`
+
+Récupère les statistiques de visionnement Vimeo.

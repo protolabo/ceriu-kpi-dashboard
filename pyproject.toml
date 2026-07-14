@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kpi-connectors"
+version = "0.3.0"
+authors = [
+  { name="Pierre Emery" },
+  { name="Ibrahim Ould Saada" },
+]
+description = "Connecteurs Python pour agréger des KPI multi-sources (GA4, Mailchimp, Vimeo)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "pydantic",
+    "pydantic-settings",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

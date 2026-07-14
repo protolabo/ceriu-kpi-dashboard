@@ -174,3 +174,25 @@ cython_debug/
 .pypirc
 
 secrets/
+
+# Ajouts spécifiques 
+
+# Secrets et credentials 
+oauth-token.json
+*-token.json
+credentials.json
+service-account*.json
+secrets/
+
+# Données locales / exports 
+*.csv
+*.pbix          # fichiers Power BI (volumineux + peuvent contenir des données)
+*.pbit
+
+
+# Pipenv # décommente si on ne committe pas le lock
+# Pipfile.lock
+
+# OS
+.DS_Store
+Thumbs.db

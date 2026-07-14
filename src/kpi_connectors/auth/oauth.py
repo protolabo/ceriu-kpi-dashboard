@@ -1,6 +1,12 @@
 import requests
 from typing import Optional
-from app.models.oauth_model import OAuthCredentials
+from pydantic import BaseModel
+
+class OAuthCredentials(BaseModel):
+    client_id: str
+    client_secret: str
+    refresh_token: str
+    token_uri: str
 
 class OAuthService:
     def __init__(self, credentials: OAuthCredentials):
@@ -30,3 +36,4 @@ class OAuthService:
             return self._access_token
         except requests.RequestException as e:
             raise ValueError(f"Failed to obtain access token: {str(e)}")
+        

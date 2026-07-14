@@ -5,11 +5,9 @@ import json
 import base64
 
 from app.models.api_model import APIResponse
-from app.models.oauth_model import OAuthCredentials
-from app.models.ga4_model import GA4QueryParams
-from app.services.oauth_service import OAuthService
-from app.services.ga4_service import GA4Service
-
+from kpi_connectors.auth.oauth import OAuthCredentials, OAuthService
+from kpi_connectors.models.ga4 import GA4QueryParams
+from kpi_connectors.connectors.ga4 import GA4Service
 
 router = APIRouter()
 
@@ -35,6 +33,7 @@ def get_ga4_report(
     metrics: List[str] = Query(["activeUsers"], description="List of metrics"),
     dimensions: Optional[List[str]] = Query(None, description="List of dimensions"),
     limit: int = Query(1000, ge=1, le=10000, description="Result limit"),
+    event_name: Optional[str] = Query(None, description="Filter exact eventName"),
     credentials: OAuthCredentials = Depends(parse_oauth_credentials)
 ):
     """
@@ -56,7 +55,8 @@ def get_ga4_report(
             end_date=end_date,
             metrics=metrics,
             dimensions=dimensions,
-            limit=limit
+            limit=limit,
+            event_name=event_name
         )
         
         # Execute query
