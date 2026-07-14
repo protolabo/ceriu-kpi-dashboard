@@ -35,20 +35,6 @@ pip install -r requirements.txt
 
 ## Configuration
 
-### Option 1: Variables d'environnement (Pour un compte)
-
-Ajoutez les clés suivantes au fichier `.env` à la racine du projet:
-
-```sh
-# OAuth Google (GA4)
-OAUTH_CLIENT_ID=votre_client_id
-OAUTH_CLIENT_SECRET=votre_client_secret
-OAUTH_REFRESH_TOKEN=votre_refresh_token
-OAUTH_TOKEN_URI=https://oauth2.googleapis.com/token
-```
-
-### Option 2: Header HTTP (Pour plusieurs comptes)
-
 Les credentials *OAuth* peuvent être passés dans le header `X-OAuth-Credentials` (encodé en base64).
 
 **Obtenir les credentials OAuth pour GA4**
