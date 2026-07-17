@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Header
 from typing import Optional
 
 from app.config.settings import settings
@@ -13,7 +13,8 @@ def list_vimeo_videos(
     sort: Optional[str] = Query(None, description="date, plays, alphabetical, duration"),
     direction: Optional[str] = Query(None, description="asc ou desc"),
     query: Optional[str] = Query(None, description="Recherche sur le nom"),
+    x_vimeo_access_token: str = Header(..., alias="X-Vimeo-Access-Token"),
 ):
     params = VimeoQueryParams(per_page=per_page, sort=sort, direction=direction, query=query)
-    videos = fetch_vimeo_videos(access_token=settings.VIMEO_ACCESS_TOKEN, params=params)
+    videos = fetch_vimeo_videos(access_token=x_vimeo_access_token, params=params)
     return VimeoVideosResponse(total_videos=len(videos), videos=videos)

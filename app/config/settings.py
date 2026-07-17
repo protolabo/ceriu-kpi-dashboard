@@ -7,7 +7,7 @@ from pathlib import Path
 """
 This module defines the application's configuration settings using environment variables and default values.
 """
-ENV_PATH = Path(__file__).resolve().parents[3] / "app" / ".env"
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 class Settings(BaseSettings):
     """Configuration de l'application"""
@@ -21,8 +21,6 @@ class Settings(BaseSettings):
     BASE_URL: str = "http://localhost:8000"
     ENVIRONMENT: str = "dev"
     
-    MAILCHIMP_API_KEY: str | None = None
-    VIMEO_ACCESS_TOKEN: str | None = None
     
     # ========================================
     # CORS
@@ -37,6 +35,8 @@ class Settings(BaseSettings):
         "Content-Type",
         "Authorization",
         "X-OAuth-Credentials",
+        "X-Mailchimp-API-Key",
+        "X-Vimeo-Access-Token",
         "X-Property-ID",
         "Accept",
     ]
