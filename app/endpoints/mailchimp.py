@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Header
+from fastapi import APIRouter, Query, Header, HTTPException
 from typing import Optional
 
 from app.config.settings import settings
@@ -36,11 +36,14 @@ def list_mailchimp_audiences(
 def list_mailchimp_click_details(
     campaign_id: str | None = Query(
         None,
-        description="ID de campagne Mailchimp. Si omis, récupère le détail pour toutes les campagnes envoyées.",
+        description="ID de campagne Mailchimp. Si vide, récupère le détail pour toutes les campagnes envoyées.",
     ),
     x_mailchimp_api_key: str = Header(..., alias="X-Mailchimp-API-Key"),
 ):
-    return fetch_mailchimp_click_details(
-        api_key=x_mailchimp_api_key,
-        campaign_id=campaign_id,
-    )
+    try:
+        return fetch_mailchimp_click_details(
+            api_key=x_mailchimp_api_key,
+            campaign_id=campaign_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=504, detail=str(e))

@@ -1,6 +1,7 @@
 import requests
 from kpi_connectors.models.mailchimp import MailchimpCampaignParams
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 def fetch_mailchimp_audiences(api_key: str) -> dict:
     # Construit l'URL d'API à partir du data center
@@ -105,6 +106,7 @@ def fetch_mailchimp_campaign_summaries(
 def fetch_mailchimp_click_details(
     api_key: str,
     campaign_id: str | None = None,
+    since_send_time: str | None = None,
     count: int = 1000,
 ) -> list[dict]:
     data_center = api_key.split("-")[-1]
@@ -115,37 +117,44 @@ def fetch_mailchimp_click_details(
         campaign_ids = [campaign_id]
     else:
         campaigns_params = {"status": "sent", "count": count, "fields": "reports.id"}
+        if since_send_time:
+            campaigns_params["since_send_time"] = since_send_time
         resp = requests.get(base_url + "reports", params=campaigns_params, auth=auth, timeout=30)
         resp.raise_for_status()
         campaign_ids = [r["id"] for r in resp.json().get("reports", [])]
 
+    fields_param = "urls_clicked.url,urls_clicked.total_clicks,urls_clicked.unique_clicks,urls_clicked.click_percentage"
+
+    def fetch_one(cid: str, retries: int = 3) -> list[dict]:
+        params = {"count": count, "fields": fields_param}
+        for attempt in range(retries):
+            try:
+                resp = requests.get(
+                    base_url + f"reports/{cid}/click-details",
+                    params=params, auth=auth, timeout=30,
+                )
+                if resp.status_code == 429:
+                    time.sleep(2 ** attempt)  # backoff exponentiel : 1s, 2s, 4s
+                    continue
+                resp.raise_for_status()
+                return [
+                    {
+                        "campaign_id": cid,
+                        "url": u.get("url"),
+                        "total_clicks": u.get("total_clicks"),
+                        "unique_clicks": u.get("unique_clicks"),
+                        "click_percentage": u.get("click_percentage"),
+                    }
+                    for u in resp.json().get("urls_clicked", [])
+                ]
+            except requests.RequestException:
+                return []
+        return []  # échoué après tous les essais
+
     click_details: list[dict] = []
-    for cid in campaign_ids:
-        params = {
-            "count": count,
-            "fields": (
-                "urls_clicked.url,"
-                "urls_clicked.total_clicks,"
-                "urls_clicked.unique_clicks,"
-                "urls_clicked.click_percentage"
-            ),
-        }
-        resp = requests.get(
-            base_url + f"reports/{cid}/click-details",
-            params=params,
-            auth=auth,
-            timeout=30,
-        )
-        resp.raise_for_status()
-        for url_entry in resp.json().get("urls_clicked", []):
-            click_details.append(
-                {
-                    "campaign_id": cid,
-                    "url": url_entry.get("url"),
-                    "total_clicks": url_entry.get("total_clicks"),
-                    "unique_clicks": url_entry.get("unique_clicks"),
-                    "click_percentage": url_entry.get("click_percentage"),
-                }
-            )
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = [executor.submit(fetch_one, cid) for cid in campaign_ids]
+        for future in as_completed(futures):
+            click_details.extend(future.result())
 
     return click_details

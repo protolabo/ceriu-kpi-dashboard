@@ -4,3 +4,4 @@ pydantic
 pydantic_settings
 python-dotenv
 requests
+facebook-business

@@ -80,11 +80,4 @@ def get_ga4_report(
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
     
     
-@router.get("/mailchimp")
-def get_mailchimp_data(
-    list_id: str = Query(...),
-    fields: List[str] = Query(["members", "stats"]),
-    credentials: OAuthCredentials = Depends(parse_oauth_credentials)
-):
-    """Get Mailchimp data"""
-    # TODO
+
