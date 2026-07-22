@@ -18,6 +18,7 @@ dependencies = [
     "requests",
     "pydantic",
     "pydantic-settings",
+    "facebook-business",
 ]
 
 [tool.setuptools.packages.find]
