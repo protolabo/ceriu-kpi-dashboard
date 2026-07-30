@@ -88,7 +88,7 @@ def fetch_share_statistics(
             "start_date": time_range.get("start"),
             "end_date": time_range.get("end"),
             "impressions": totals.get("impressionCount"),
-            "unique_impressions": totals.get("uniqueImpressionsCounts"),
+            "unique_impressions": totals.get("uniqueImpressionsCount"),
             "clicks": totals.get("clickCount"),
             "likes": totals.get("likeCount"),
             "comments": totals.get("commentCount"),
@@ -204,7 +204,7 @@ def _fetch_stats_batch(
             all_stats.append({
                 "share_urn": el.get("share") or el.get("ugcPost"),
                 "impressions": totals.get("impressionCount"),
-                "unique_impressions": totals.get("uniqueImpressionsCounts"),
+                "unique_impressions": totals.get("uniqueImpressionsCount"),
                 "clicks": totals.get("clickCount"),
                 "likes": totals.get("likeCount"),
                 "comments": totals.get("commentCount"),

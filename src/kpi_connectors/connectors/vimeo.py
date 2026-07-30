@@ -48,3 +48,30 @@ def fetch_vimeo_videos(access_token: str, params: VimeoQueryParams | None = None
         query = None   # déjà encodé dans next_path
 
     return videos
+
+def fetch_vimeo_follower_count(access_token: str) -> dict:
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.vimeo.*+json;version=3.4",
+    }
+    params = {"fields": "uri,name,metadata.connections.followers.total"}
+
+    response = requests.get(
+        f"{base_url}/me",
+        headers=headers,
+        params=params,
+        timeout=30,
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    followers = (
+        data.get("metadata", {})
+        .get("connections", {})
+        .get("followers", {})
+        .get("total", 0)
+    )
+
+    return {
+        "follower_count": followers,
+    }

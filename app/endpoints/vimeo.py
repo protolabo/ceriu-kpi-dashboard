@@ -2,8 +2,8 @@ from fastapi import APIRouter, Query, Header
 from typing import Optional
 
 from app.config.settings import settings
-from kpi_connectors.models.vimeo import VimeoVideosResponse, VimeoQueryParams
-from kpi_connectors.connectors.vimeo import fetch_vimeo_videos
+from kpi_connectors.models.vimeo import VimeoVideosResponse, VimeoQueryParams, VimeoFollowerCountResponse
+from kpi_connectors.connectors.vimeo import fetch_vimeo_videos, fetch_vimeo_follower_count
 
 router = APIRouter(prefix="/vimeo", tags=["vimeo"])
 
@@ -18,3 +18,9 @@ def list_vimeo_videos(
     params = VimeoQueryParams(per_page=per_page, sort=sort, direction=direction, query=query)
     videos = fetch_vimeo_videos(access_token=x_vimeo_access_token, params=params)
     return VimeoVideosResponse(total_videos=len(videos), videos=videos)
+
+@router.get("/followers", response_model=VimeoFollowerCountResponse)
+def get_vimeo_follower_count(
+    x_vimeo_access_token: str = Header(..., alias="X-Vimeo-Access-Token"),
+):
+    return fetch_vimeo_follower_count(access_token=x_vimeo_access_token)

@@ -21,3 +21,6 @@ class VimeoQueryParams(BaseModel):
     sort: Optional[str] = None        # "date", "plays", "alphabetical", "duration"
     direction: Optional[str] = None   # "asc" ou "desc"
     query: Optional[str] = None       # recherche sur le nom
+
+class VimeoFollowerCountResponse(BaseModel):
+    follower_count: int

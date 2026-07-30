@@ -128,11 +128,11 @@ def facebook_post_insights(access_token: str, page_id: str) -> list[dict]:
     return resp.json().get("posts", [])
 
 
-def linkedin_posts_with_stats(oauth_credentials_header: str, organization_urn: str) -> list[dict]:
+def linkedin_posts_with_stats(linkedin_token: str, organization_urn: str) -> list[dict]:
     """
     Recupere tous les posts LinkedIn (historique complet) + leurs stats individuelles.
-    oauth_credentials_header : la valeur brute a mettre dans X-OAuth-Credentials,
-    deja encodee en base64 
+    linkedin_token : la valeur brute a mettre dans X-OAuth-Credentials,
+    deja encodee en base64
     """
     headers = {"X-OAuth-Credentials": linkedin_token}
     params = {"organization_urn": organization_urn}
