@@ -79,7 +79,10 @@ def get_posts_with_insights(
 
         def fetch_insights(post):
             try:
-                insights = post.get_insights(params={"metric": DEFAULT_POST_METRICS})
+                insights = post.get_insights(params={
+                    "metric": DEFAULT_POST_METRICS,
+                    "period": "lifetime",
+                })
                 values = {i["name"]: i["values"][0]["value"] for i in insights}
             except FacebookRequestError:
                 values = {}
