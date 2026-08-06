@@ -6,26 +6,29 @@ from urllib.parse import quote
 from kpi_connectors.auth.oauth import OAuthService
 
 BASE_URL = "https://api.linkedin.com/rest"
-LINKEDIN_API_VERSION = "202607"  # format YYYYMM, à mettre à jour périodiquement
+
+# Valeur de secours si jamais on n'envoie pas le paramètre en header.
+DEFAULT_LINKEDIN_API_VERSION = "202607"  # format YYYYMM
 
 
-def _headers(oauth_service: OAuthService) -> dict:
+def _headers(oauth_service: OAuthService, api_version: str) -> dict:
     return {
         "Authorization": f"Bearer {oauth_service.get_access_token()}",
-        "Linkedin-Version": LINKEDIN_API_VERSION,
+        "Linkedin-Version": api_version,
         "X-Restli-Protocol-Version": "2.0.0",
         "Content-Type": "application/json",
     }
-
-
+ 
+ 
 def _to_epoch_millis(d: date) -> int:
     dt = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
     return int(dt.timestamp() * 1000)
-
-
+ 
+ 
 def fetch_follower_count(
     oauth_service: OAuthService,
     organization_urn: str,
+    api_version: str = DEFAULT_LINKEDIN_API_VERSION,
 ) -> dict:
     """
     Nombre total de followers (lifetime), via l'endpoint networkSizes.
@@ -37,24 +40,25 @@ def fetch_follower_count(
     params = {"edgeType": "COMPANY_FOLLOWED_BY_MEMBER"}
     response = requests.get(
         f"{BASE_URL}/networkSizes/{encoded_urn}",
-        headers=_headers(oauth_service),
+        headers=_headers(oauth_service, api_version),
         params=params,
         timeout=30,
     )
     response.raise_for_status()
     data = response.json()
-
+ 
     return {
         "organization_urn": organization_urn,
         "follower_count": data.get("firstDegreeSize", 0),
     }
-
-
+ 
+ 
 def fetch_share_statistics(
     oauth_service: OAuthService,
     organization_urn: str,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    api_version: str = DEFAULT_LINKEDIN_API_VERSION,
 ) -> dict:
     """
     Statistiques agrégées de toutes les publications (impressions, clics, engagement...).
@@ -64,22 +68,22 @@ def fetch_share_statistics(
         "q": "organizationalEntity",
         "organizationalEntity": organization_urn,
     }
-
+ 
     if start_date and end_date:
         params["timeIntervals"] = (
             f"(timeRange:(start:{_to_epoch_millis(start_date)},"
             f"end:{_to_epoch_millis(end_date)}),timeGranularityType:DAY)"
         )
-
+ 
     response = requests.get(
         f"{BASE_URL}/organizationalEntityShareStatistics",
-        headers=_headers(oauth_service),
+        headers=_headers(oauth_service, api_version),
         params=params,
         timeout=30,
     )
     response.raise_for_status()
     data = response.json()
-
+ 
     stats: list[dict] = []
     for element in data.get("elements", []):
         totals = element.get("totalShareStatistics", {})
@@ -95,32 +99,32 @@ def fetch_share_statistics(
             "shares": totals.get("shareCount"),
             "engagement": totals.get("engagement"),
         })
-
+ 
     return {
         "organization_urn": organization_urn,
         "stats": stats,
     }
-
-
+ 
+ 
 def fetch_organization_posts(
     oauth_service: OAuthService,
     organization_urn: str,
     page_size: int = 50,
     max_posts: Optional[int] = None,
+    api_version: str = DEFAULT_LINKEDIN_API_VERSION,
 ) -> list[dict]:
     """
     Liste les posts publiés par l'organisation, avec pagination complète.
     Nécessite le scope r_organization_social (en plus de rw_organization_admin).
-
-    - page_size : nombre de posts par appel HTTP.
-    - max_posts : si fourni, arrête la pagination une fois ce nombre atteint.
-      Si None, récupère tout l'historique (peut représenter plusieurs milliers
-      de posts et donc plusieurs dizaines d'appels HTTP -> prévoir un timeout élevé
-      côté appelant).
+ 
+    Note : LinkedIn peut occasionnellement retourner un même post sur deux pages
+    consécutives (chevauchement de pagination observé empiriquement) -> on
+    déduplique par id avant de retourner le résultat.
     """
     posts: list[dict] = []
+    seen_ids: set[str] = set()
     start = 0
-
+ 
     while True:
         params = {
             "q": "author",
@@ -130,26 +134,30 @@ def fetch_organization_posts(
         }
         response = requests.get(
             f"{BASE_URL}/posts",
-            headers=_headers(oauth_service),
+            headers=_headers(oauth_service, api_version),
             params=params,
             timeout=30,
         )
         response.raise_for_status()
         data = response.json()
-
+ 
         elements = data.get("elements", [])
         for el in elements:
+            post_id = el.get("id")
+            if post_id in seen_ids:
+                continue  # doublon de pagination, ignoré
+            seen_ids.add(post_id)
             posts.append({
-                "id": el.get("id"),  # ex: "urn:li:share:1234567890"
+                "id": post_id,
                 "created_at": el.get("createdAt"),
                 "published_at": el.get("publishedAt"),
                 "commentary": el.get("commentary"),
                 "visibility": el.get("visibility"),
             })
-
+ 
         total = data.get("paging", {}).get("total", len(posts))
         start += len(elements)
-
+ 
         if not elements:
             break
         if start >= total:
@@ -157,10 +165,10 @@ def fetch_organization_posts(
         if max_posts is not None and len(posts) >= max_posts:
             posts = posts[:max_posts]
             break
-
+ 
     return posts
-
-
+ 
+ 
 def _build_list_param(urns: list[str]) -> str:
     """
     Construit la syntaxe Rest.li List(...) attendue par LinkedIn :
@@ -169,36 +177,37 @@ def _build_list_param(urns: list[str]) -> str:
     """
     encoded_urns = ",".join(quote(u, safe="") for u in urns)
     return f"List({encoded_urns})"
-
-
+ 
+ 
 def _fetch_stats_batch(
     oauth_service: OAuthService,
     organization_urn: str,
     urns: list[str],
     param_name: str,
     batch_size: int,
+    api_version: str,
 ) -> list[dict]:
     all_stats: list[dict] = []
-
+ 
     for i in range(0, len(urns), batch_size):
         batch = urns[i:i + batch_size]
         if not batch:
             continue
-
+ 
         list_param = _build_list_param(batch)
         encoded_org_urn = quote(organization_urn, safe="")
-
+ 
         url = (
             f"{BASE_URL}/organizationalEntityShareStatistics"
             f"?q=organizationalEntity"
             f"&organizationalEntity={encoded_org_urn}"
             f"&{param_name}={list_param}"
         )
-
-        response = requests.get(url, headers=_headers(oauth_service), timeout=30)
+ 
+        response = requests.get(url, headers=_headers(oauth_service, api_version), timeout=30)
         response.raise_for_status()
         data = response.json()
-
+ 
         for el in data.get("elements", []):
             totals = el.get("totalShareStatistics", {})
             all_stats.append({
@@ -211,15 +220,16 @@ def _fetch_stats_batch(
                 "shares": totals.get("shareCount"),
                 "engagement": totals.get("engagement"),
             })
-
+ 
     return all_stats
-
-
+ 
+ 
 def fetch_share_statistics_by_posts(
     oauth_service: OAuthService,
     organization_urn: str,
     share_urns: list[str],
     batch_size: int = 50,
+    api_version: str = DEFAULT_LINKEDIN_API_VERSION,
 ) -> list[dict]:
     """
     Récupère les statistiques individuelles pour une liste de posts.
@@ -229,9 +239,9 @@ def fetch_share_statistics_by_posts(
     """
     shares = [u for u in share_urns if u.startswith("urn:li:share:")]
     ugc_posts = [u for u in share_urns if u.startswith("urn:li:ugcPost:")]
-
+ 
     all_stats: list[dict] = []
-    all_stats += _fetch_stats_batch(oauth_service, organization_urn, shares, "shares", batch_size)
-    all_stats += _fetch_stats_batch(oauth_service, organization_urn, ugc_posts, "ugcPosts", batch_size)
-
+    all_stats += _fetch_stats_batch(oauth_service, organization_urn, shares, "shares", batch_size, api_version)
+    all_stats += _fetch_stats_batch(oauth_service, organization_urn, ugc_posts, "ugcPosts", batch_size, api_version)
+ 
     return all_stats
